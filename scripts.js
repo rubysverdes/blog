@@ -76,6 +76,28 @@ async function saveData() {
     }
 }
 
+// Função para converter a data do post (ex: "28 de Agosto, 2025") para um objeto Date
+function parsePostDate(dateString) {
+    const months = {
+        'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5,
+        'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
+    };
+
+    // Remove " de " e vírgulas, e divide em dia, mês e ano
+    const parts = dateString.replace(/ de /g, ' ').replace(',', '').split(' ');
+    if (parts.length < 3) {
+        // Retorna uma data inválida se o formato for inesperado
+        return new Date('invalid');
+    }
+
+    const day = parseInt(parts[0], 10);
+    const monthName = parts[1].toLowerCase();
+    const year = parseInt(parts[2], 10);
+    const month = months[monthName];
+
+    return new Date(year, month, day);
+}
+
 // Função para carregar os posts na página
 async function loadPosts(page = 1, postsPerPage = 6) {
     const postsGrid = document.getElementById('postsGrid');
@@ -104,6 +126,15 @@ async function loadPosts(page = 1, postsPerPage = 6) {
         await loadDefaultPosts();
     }
     
+    // Filtrar posts para exibir apenas os que já passaram da data de publicação
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Zera o horário para comparar apenas a data
+
+    const visiblePosts = blogPosts.filter(post => {
+        const postDate = parsePostDate(post.date);
+        return postDate <= today;
+    });
+
     // Limpar conteúdo existente
     postsGrid.innerHTML = '';
     if (pagination) pagination.innerHTML = '';
@@ -111,7 +142,7 @@ async function loadPosts(page = 1, postsPerPage = 6) {
     // Calcular posts para a página atual
     const startIndex = (page - 1) * postsPerPage;
     const endIndex = startIndex + postsPerPage;
-    const postsToShow = blogPosts.slice(startIndex, endIndex);
+    const postsToShow = visiblePosts.slice(startIndex, endIndex);
     
     // Gerar HTML para os posts
     postsToShow.forEach(post => {
@@ -154,7 +185,7 @@ async function loadPosts(page = 1, postsPerPage = 6) {
     
     // Gerar paginação
     if (pagination) {
-        const totalPages = Math.ceil(blogPosts.length / postsPerPage);
+        const totalPages = Math.ceil(visiblePosts.length / postsPerPage);
         
         if (totalPages > 1) {
             for (let i = 1; i <= totalPages; i++) {
