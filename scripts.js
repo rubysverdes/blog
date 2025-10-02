@@ -276,6 +276,32 @@ async function loadIndividualPost() {
         return;
     }
     
+    // Filtrar e ordenar posts visíveis para encontrar o anterior/próximo
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const visibleAndSortedPosts = blogPosts
+        .filter(p => parsePostDate(p.date) <= today)
+        .sort((a, b) => parsePostDate(a.date) - parsePostDate(b.date) || a.id - b.id);
+
+    const currentIndex = visibleAndSortedPosts.findIndex(p => p.id === postId);
+    const prevPost = currentIndex > 0 ? visibleAndSortedPosts[currentIndex - 1] : null;
+    const nextPost = currentIndex < visibleAndSortedPosts.length - 1 ? visibleAndSortedPosts[currentIndex + 1] : null;
+
+    let postNavigationHTML = `
+        <div class="post-navigation">
+            ${prevPost ? `
+                <a href="post.html?id=${prevPost.id}" class="prev-post">
+                    <span><i class="fas fa-arrow-left"></i> Post Anterior</span>
+                    <p>${prevPost.title}</p>
+                </a>` : '<div></div>'}
+            ${nextPost ? `
+                <a href="post.html?id=${nextPost.id}" class="next-post">
+                    <span>Próximo Post <i class="fas fa-arrow-right"></i></span>
+                    <p>${nextPost.title}</p>
+                </a>` : '<div></div>'}
+        </div>`;
+
     const likes = appState.likes[postId] || 0;
     const comments = appState.comments[postId] || [];
     
@@ -307,6 +333,8 @@ async function loadIndividualPost() {
                 </button>
             </div>
         </article>
+
+        ${postNavigationHTML}
         
         <section class="comments-section" id="comments">
             <h3>Comentários (${comments.length})</h3>
